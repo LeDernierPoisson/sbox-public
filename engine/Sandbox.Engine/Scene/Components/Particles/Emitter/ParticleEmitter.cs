@@ -56,13 +56,20 @@ public abstract class ParticleEmitter : Component, Component.ExecuteInEditor, Co
 	/// </summary>
 	public float EmitRandom { get; private set; }
 
+	/// <summary>
+	/// The evaluated duration value for this emitter instance, computed from the Duration property
+	/// </summary>
+	public float EvaluatedDuration { get; private set; }
+
+	/// <summary>
+	/// The evaluated delay value for this emitter instance, computed from the Delay property
+	/// </summary>
+	public float EvaluatedDelay { get; private set; }
+
 	public float time;
 	float emitted;
 	bool burstPending;
 	bool suspended;
-
-	public float EvaluatedDuration { get; private set; }
-	public float EvaluatedDelay { get; private set; }
 	float evaluatedBurst;
 	protected float evaluatedRateOverDistance;
 
