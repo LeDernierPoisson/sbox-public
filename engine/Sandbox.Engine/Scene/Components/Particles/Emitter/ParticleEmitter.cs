@@ -61,8 +61,8 @@ public abstract class ParticleEmitter : Component, Component.ExecuteInEditor, Co
 	bool burstPending;
 	bool suspended;
 
-	public float EvaluatedDuration;
-	public float EvaluatedDelay;
+	public float EvaluatedDuration { get; private set; }
+	public float EvaluatedDelay { get; private set; }
 	float evaluatedBurst;
 	protected float evaluatedRateOverDistance;
 
