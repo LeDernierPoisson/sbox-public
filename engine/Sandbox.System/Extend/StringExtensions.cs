@@ -650,7 +650,9 @@ public static partial class SandboxSystemExtensions
 		if ( t == typeof( ulong ) ) { Value = str.ToULong(); return true; }
 		if ( t == typeof( long ) ) { Value = str.ToLong(); return true; }
 		if ( t == typeof( Vector2 ) ) { Value = Vector2.Parse( str ); return true; }
+		if ( t == typeof( Vector2Int ) ) { Value = Vector2Int.Parse( str ); return true; }
 		if ( t == typeof( Vector3 ) ) { Value = Vector3.Parse( str ); return true; }
+		if ( t == typeof( Vector3Int ) ) { Value = Vector3Int.Parse( str ); return true; }
 		if ( t == typeof( Vector4 ) ) { Value = Vector4.Parse( str ); return true; }
 		if ( t == typeof( Angles ) ) { Value = global::Angles.Parse( str ); return true; }
 		if ( t == typeof( Color ) ) { Value = global::Color.Parse( str ); return true; }
@@ -698,12 +700,20 @@ public static partial class SandboxSystemExtensions
 	}
 
 	/// <summary>
-	/// Generate xxhash3 hash from given string.
+	/// Generate a 32-bit truncated xxhash3 hash from given string.
 	/// </summary>
 	public static int FastHash( this string str )
 	{
+		return (int)FastHash64( str );
+	}
+
+	/// <summary>
+	/// Generate a 64-bit xxhash3 hash from given string.
+	/// </summary>
+	public static ulong FastHash64( this string str )
+	{
 		// Must Match the version in Sandbox,CodeGen. Should only be changed after careful benchmarking.
-		return (int)XxHash3.HashToUInt64( GetUtf16Bytes( str ) );
+		return XxHash3.HashToUInt64( GetUtf16Bytes( str ) );
 	}
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]

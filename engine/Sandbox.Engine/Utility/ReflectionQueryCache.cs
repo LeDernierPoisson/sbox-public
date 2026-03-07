@@ -11,6 +11,7 @@ namespace Sandbox;
 internal static class ReflectionQueryCache
 {
 	private static Dictionary<Type, bool> _isTypeCloneableByCopy = new();
+	private static Dictionary<Type, bool> _isICloneableSafe = new();
 	private static Dictionary<Type, MemberDescription[]> _orderedMemberCache = new();
 	private static Dictionary<Type, PropertyDescription[]> _requiredComponentMemberCache = new();
 
@@ -24,9 +25,28 @@ internal static class ReflectionQueryCache
 	public static void ClearTypeCache()
 	{
 		_isTypeCloneableByCopy.Clear();
+		_isICloneableSafe.Clear();
 		_orderedMemberCache.Clear();
 		_requiredComponentMemberCache.Clear();
 		_syncVarMemberCache.Clear();
+		MemberCopyCache.Clear();
+	}
+
+	/// <summary>
+	/// Returns true if this type's ICloneable.Clone() is safe to call during cloning,
+	/// meaning the type declares its own Clone() rather than inheriting a shallow-copy
+	/// implementation from a BCL base type (Delegate, Array, etc.).
+	/// Result is cached since GetMethod is expensive.
+	/// </summary>
+	public static bool IsICloneableSafe( Type t )
+	{
+		if ( _isICloneableSafe.TryGetValue( t, out var cached ) )
+			return cached;
+
+		var isSafe = t.GetMethod( nameof( ICloneable.Clone ), Type.EmptyTypes )?.DeclaringType == t;
+
+		_isICloneableSafe[t] = isSafe;
+		return isSafe;
 	}
 
 	/// <summary>
@@ -173,7 +193,7 @@ internal static class ReflectionQueryCache
 		}
 
 		// Immutable lists are safe to copy, if their containing type is safe to copy
-		if ( IsImmutableList( t ) )
+		if ( IsImmutableType( t ) )
 		{
 			return IsTypeCloneableByCopyInternal( t.GetGenericArguments()[0], processingTypes );
 		}
@@ -243,10 +263,10 @@ internal static class ReflectionQueryCache
 		return !alwaysCheck && ignoredByDefault;
 	}
 
-	private static bool IsImmutableList( Type t )
+	private static bool IsImmutableType( Type t )
 	{
 		if ( !t.IsGenericType ) return false;
 
-		return t.GetGenericTypeDefinition() == typeof( ImmutableList<> );
+		return t.GetGenericTypeDefinition() == typeof( ImmutableList<> ) || t.GetGenericTypeDefinition() == typeof( ImmutableArray<> );
 	}
 }

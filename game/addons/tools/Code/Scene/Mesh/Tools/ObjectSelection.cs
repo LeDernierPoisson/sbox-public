@@ -108,35 +108,37 @@ public sealed partial class ObjectSelection( MeshTool tool ) : SelectionTool
 
 	public override void Resize( Vector3 origin, Rotation basis, Vector3 scale )
 	{
-		foreach ( var startPoint in _startPoints )
+		var invBasis = basis.Inverse;
+
+		foreach ( var entry in _startPoints )
 		{
-			var mc = startPoint.Key.GetComponent<MeshComponent>();
-			if ( mc.IsValid() == false ) continue;
+			var start = entry.Value;
+			var local = invBasis * (start.Position - origin);
+			local *= scale;
+			var position = origin + (basis * local);
 
-			var position = (startPoint.Value.Position - origin) * basis.Inverse;
-			position *= scale;
-			position *= basis;
-			position += origin;
-
-			var transform = mc.WorldTransform.WithPosition( position );
-			mc.Mesh.SetTransform( transform );
+			if ( entry.Key.GetComponent<MeshComponent>() is { } mc && mc.IsValid() )
+			{
+				mc.Mesh.SetTransform( mc.WorldTransform.WithPosition( position ) );
+			}
+			else
+			{
+				entry.Key.WorldTransform = new Transform( position, start.Rotation, start.Scale * scale );
+			}
 		}
 
 		foreach ( var entry in _transformVertices )
 		{
-			var position = (entry.Value - origin) * basis.Inverse;
-			position *= scale;
-			position *= basis;
-			position += origin;
-
-			var transform = entry.Key.Component.Mesh.Transform;
-			entry.Key.Component.Mesh.SetVertexPosition( entry.Key.Handle, transform.PointToLocal( position ) );
+			var local = invBasis * (entry.Value - origin);
+			local *= scale;
+			var worldPos = origin + (basis * local);
+			var mesh = entry.Key.Component.Mesh;
+			mesh.SetVertexPosition( entry.Key.Handle, mesh.Transform.PointToLocal( worldPos ) );
 		}
 
-		foreach ( var startPoint in _startPoints )
+		foreach ( var start in _startPoints )
 		{
-			var mc = startPoint.Key.GetComponent<MeshComponent>();
-			if ( mc.IsValid() == false ) continue;
+			if ( start.Key.GetComponent<MeshComponent>() is not { } mc || !mc.IsValid() ) continue;
 
 			mc.Mesh.ComputeFaceTextureCoordinatesFromParameters();
 			mc.WorldTransform = mc.Mesh.Transform;

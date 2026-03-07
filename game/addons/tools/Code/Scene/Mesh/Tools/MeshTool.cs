@@ -72,7 +72,11 @@ public partial class MeshTool : EditorTool
 	[Shortcut( "tools.mesh-tool", "m", typeof( SceneViewWidget ) )]
 	public static void ActivateTool()
 	{
+		if ( EditorToolManager.CurrentModeName == nameof( MeshTool ) )
+			return;
+
 		EditorToolManager.SetTool( nameof( MeshTool ) );
+		EditorToolManager.SetSubTool( nameof( ObjectSelection ) );
 	}
 
 	private void SaveActiveMaterial()
