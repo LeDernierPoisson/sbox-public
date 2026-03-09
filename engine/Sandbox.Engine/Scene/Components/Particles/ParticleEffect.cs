@@ -396,6 +396,7 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 	public bool Paused { get; set; }
 
 	Transform lastTransform;
+	Transform _prevLastTransform;
 
 	ConcurrentQueue<Particle> deleteList = new ConcurrentQueue<Particle>();
 
@@ -454,6 +455,7 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 
 		isWarmed = false;
 		lastTransform = WorldTransform;
+		_prevLastTransform = WorldTransform;
 	}
 
 	protected override void OnDisabled()
@@ -518,12 +520,12 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 
 		if ( _parentMoved && frame > 0 && localSpace > 0.001f )
 		{
-			var localPos = lastTransform.PointToLocal( p.Position );
+			var localPos = _prevLastTransform.PointToLocal( p.Position );
 			var worldPos = _worldTx.PointToWorld( localPos );
 
-			var localVelocity = lastTransform.NormalToLocal( p.Velocity.Normal );
+			var localVelocity = _prevLastTransform.NormalToLocal( p.Velocity.Normal );
 			var worldVelocity = _worldTx.NormalToWorld( localVelocity ) * p.Velocity.Length;
-
+			
 			p.Position = p.Position.LerpTo( worldPos, localSpace );
 			p.Velocity = p.Velocity.LerpTo( worldVelocity, localSpace );
 		}
@@ -735,8 +737,9 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 		if ( ForceSpace == SimulationSpace.Local )
 			_worldForce = _worldTx.Rotation * ForceDirection;
 
-		Vector3 lastPos = lastTransform.Position;
-		Transform deltaTransform = _worldTx.ToLocal( lastTransform );
+		_prevLastTransform = lastTransform;
+		lastTransform = _worldTx;
+		Transform deltaTransform = _worldTx.ToLocal( _prevLastTransform );
 
 		_parentMoved = deltaTransform != global::Transform.Zero;
 
@@ -758,8 +761,6 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 		MaxParticleSize = _maxSize;
 
 		OnPostStep?.Invoke( _timeDelta );
-
-		lastTransform = WorldTransform;
 	}
 
 	[Obsolete( "Pass in a delta" )]
