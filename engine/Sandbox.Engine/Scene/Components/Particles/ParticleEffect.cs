@@ -396,7 +396,8 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 	public bool Paused { get; set; }
 
 	Transform lastTransform;
-	Transform _prevLastTransform;
+	
+	Transform prevLastTransform;
 
 	ConcurrentQueue<Particle> deleteList = new ConcurrentQueue<Particle>();
 
