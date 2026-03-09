@@ -456,7 +456,7 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 
 		isWarmed = false;
 		lastTransform = WorldTransform;
-		_prevLastTransform = WorldTransform;
+		prevLastTransform = WorldTransform;
 	}
 
 	protected override void OnDisabled()
@@ -521,10 +521,10 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 
 		if ( _parentMoved && frame > 0 && localSpace > 0.001f )
 		{
-			var localPos = _prevLastTransform.PointToLocal( p.Position );
+			var localPos = prevLastTransform.PointToLocal( p.Position );
 			var worldPos = _worldTx.PointToWorld( localPos );
 
-			var localVelocity = _prevLastTransform.NormalToLocal( p.Velocity.Normal );
+			var localVelocity = prevLastTransform.NormalToLocal( p.Velocity.Normal );
 			var worldVelocity = _worldTx.NormalToWorld( localVelocity ) * p.Velocity.Length;
 			
 			p.Position = p.Position.LerpTo( worldPos, localSpace );
@@ -738,9 +738,9 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 		if ( ForceSpace == SimulationSpace.Local )
 			_worldForce = _worldTx.Rotation * ForceDirection;
 
-		_prevLastTransform = lastTransform;
+		prevLastTransform = lastTransform;
 		lastTransform = _worldTx;
-		Transform deltaTransform = _worldTx.ToLocal( _prevLastTransform );
+		Transform deltaTransform = _worldTx.ToLocal( prevLastTransform );
 
 		_parentMoved = deltaTransform != global::Transform.Zero;
 
