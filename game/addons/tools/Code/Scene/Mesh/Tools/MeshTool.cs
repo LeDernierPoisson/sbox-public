@@ -36,7 +36,7 @@ public partial class MeshTool : EditorTool
 	public override IEnumerable<EditorTool> GetSubtools()
 	{
 		yield return new PrimitiveTool( this );
-		yield return new MeshSelection( this );
+		yield return new ObjectSelection( this );
 		yield return new VertexTool( this );
 		yield return new EdgeTool( this );
 		yield return new FaceTool( this );
@@ -59,6 +59,11 @@ public partial class MeshTool : EditorTool
 		LoadToolbarCookies();
 	}
 
+	public override void OnUpdate()
+	{
+		AllowGameObjectSelection = CurrentTool?.GetType() == typeof( ObjectSelection );
+	}
+
 	public override void OnSelectionChanged()
 	{
 		CurrentTool?.OnSelectionChanged();
@@ -67,7 +72,11 @@ public partial class MeshTool : EditorTool
 	[Shortcut( "tools.mesh-tool", "m", typeof( SceneViewWidget ) )]
 	public static void ActivateTool()
 	{
+		if ( EditorToolManager.CurrentModeName == nameof( MeshTool ) )
+			return;
+
 		EditorToolManager.SetTool( nameof( MeshTool ) );
+		EditorToolManager.SetSubTool( nameof( ObjectSelection ) );
 	}
 
 	private void SaveActiveMaterial()

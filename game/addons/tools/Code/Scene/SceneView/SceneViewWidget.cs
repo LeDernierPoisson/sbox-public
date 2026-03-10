@@ -110,7 +110,7 @@ public partial class SceneViewWidget : Widget
 			//
 			session.Tick();
 
-			bool shouldUpdate = Visible; // Update if the scene window is visible
+			bool shouldUpdate = Visible && session.ShouldUpdate; // Update if the scene window is visible
 
 			if ( !shouldUpdate )
 				return;

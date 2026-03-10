@@ -79,7 +79,7 @@ public partial class SoundFile : Resource, IValid
 
 	~SoundFile()
 	{
-		Dispose();
+		Destroy();
 	}
 
 	internal static void Init()
@@ -95,15 +95,26 @@ public partial class SoundFile : Resource, IValid
 		{
 			foreach ( var file in Loaded.Values )
 			{
-				file.Dispose();
+				file.Destroy();
 			}
 		}
 	}
 
-	internal void Dispose()
+	internal override void Destroy()
 	{
+		// Release the native strong handle for the sound resource.
+		// Without this the native refcount is never decremented and
+		// the SOUND resource leaks on shutdown.
+		if ( !sound.IsNull )
+		{
+			var s = sound;
+			sound = default;
+			MainThread.Queue( () => s.DestroyStrongHandle() );
+		}
+
 		native = default;
-		sound = default;
+
+		base.Destroy();
 	}
 
 	internal void OnReloadInternal()
@@ -147,7 +158,7 @@ public partial class SoundFile : Resource, IValid
 
 		Loaded[filename] = soundFile;
 
-		soundFile.SetIdFromResourcePath( filename );
+		soundFile.RegisterWeakResourceId( filename );
 
 		return soundFile;
 	}
@@ -166,7 +177,7 @@ public partial class SoundFile : Resource, IValid
 			var soundFile = new SoundFile( sfx );
 			Loaded[filename] = soundFile;
 
-			soundFile.SetIdFromResourcePath( filename );
+			soundFile.RegisterWeakResourceId( filename );
 
 			g_pSoundSystem.PreloadSound( sfx );
 
