@@ -396,7 +396,7 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 	public bool Paused { get; set; }
 
 	Transform lastTransform;
-	
+
 	Transform prevLastTransform;
 
 	ConcurrentQueue<Particle> deleteList = new ConcurrentQueue<Particle>();
@@ -526,7 +526,7 @@ public sealed partial class ParticleEffect : Component, Component.ExecuteInEdito
 
 			var localVelocity = prevLastTransform.NormalToLocal( p.Velocity.Normal );
 			var worldVelocity = _worldTx.NormalToWorld( localVelocity ) * p.Velocity.Length;
-			
+
 			p.Position = p.Position.LerpTo( worldPos, localSpace );
 			p.Velocity = p.Velocity.LerpTo( worldVelocity, localSpace );
 		}
