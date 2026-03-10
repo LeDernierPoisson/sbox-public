@@ -149,7 +149,7 @@ public readonly ref struct HudPainter
 		return DrawText( scope, rect, flags );
 	}
 
-	private static readonly Material TextShader = Material.FromShader( "shaders/ui_text.shader" );
+	private static Material TextShader = Material.FromShader( "shaders/ui_text.shader" );
 
 	/// <summary>
 	/// Draws text within a rectangle using a prepared <see cref="TextRendering.Scope"/>.
@@ -170,7 +170,7 @@ public readonly ref struct HudPainter
 		return rect;
 	}
 
-	private static readonly Material LineShader = Material.FromShader( "shaders/Hud/line.shader" );
+	private static Material LineShader = Material.FromShader( "shaders/Hud/line.shader" );
 
 	/// <summary>
 	/// Draws a line between two points with the specified width and color.

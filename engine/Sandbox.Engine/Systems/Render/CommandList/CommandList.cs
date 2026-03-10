@@ -975,6 +975,57 @@ public sealed unsafe partial class CommandList
 	}
 
 	/// <summary>
+	/// Clears the given texture to a solid color.
+	/// </summary>
+	/// <param name="texture">The texture to clear.</param>
+	/// <param name="color">The color to clear to. Defaults to transparent black.</param>
+	public void Clear( Texture texture, Color color = default )
+	{
+		static void Execute( ref Entry entry, CommandList commandList )
+		{
+			((Texture)entry.Object1).Clear( new Color( entry.Data1.x, entry.Data1.y, entry.Data1.z, entry.Data1.w ) );
+		}
+
+		AddEntry( &Execute, new Entry { Object1 = texture, Data1 = new Vector4( color.r, color.g, color.b, color.a ) } );
+	}
+
+	/// <summary>
+	/// Clears the color texture of the given render target handle to a solid color.
+	/// </summary>
+	/// <param name="handle">The render target handle whose color texture to clear.</param>
+	/// <param name="color">The color to clear to. Defaults to transparent black.</param>
+	public void Clear( RenderTargetHandle handle, Color color = default )
+	{
+		static void Execute( ref Entry entry, CommandList commandList )
+		{
+			if ( commandList.state.GetRenderTarget( (string)entry.Object5 ) is not { } target )
+			{
+				Log.Warning( $"[{commandList.DebugName ?? "CommandList"}] Unknown rt: {(string)entry.Object5}" );
+				return;
+			}
+
+			target.ColorTarget.Clear( new Color( entry.Data1.x, entry.Data1.y, entry.Data1.z, entry.Data1.w ) );
+		}
+
+		AddEntry( &Execute, new Entry { Object5 = handle.ColorTexture.Name, Data1 = new Vector4( color.r, color.g, color.b, color.a ) } );
+	}
+
+	/// <summary>
+	/// Fills the given GPU buffer with a repeated uint32 value.
+	/// </summary>
+	/// <param name="buffer">The buffer to clear.</param>
+	/// <param name="value">The uint32 value to fill with. Defaults to zero.</param>
+	public void Clear( GpuBuffer buffer, uint value = 0 )
+	{
+		static void Execute( ref Entry entry, CommandList commandList )
+		{
+			((GpuBuffer)entry.Object1).Clear( (uint)entry.Data1.x );
+		}
+
+		AddEntry( &Execute, new Entry { Object1 = buffer, Data1 = new Vector4( value, 0, 0, 0 ) } );
+	}
+
+	/// <summary>
 	/// Executes a barrier transition for the given GPU Texture Resource.
 	/// Transitions the texture resource to a new pipeline stage and access state.
 	/// </summary>
@@ -1077,6 +1128,36 @@ public sealed unsafe partial class CommandList
 		}
 
 		AddEntry( &Execute, new Entry { Object1 = buffer, Data1 = new Vector4( (int)before, (int)after, 0, 0 ) } );
+	}
+
+	/// <summary>
+	/// Issues a UAV barrier for the given texture, ensuring writes from prior shader invocations
+	/// are visible to subsequent ones without changing the resource layout.
+	/// </summary>
+	/// <param name="texture">The texture to barrier.</param>
+	public void UavBarrier( Texture texture )
+	{
+		static void Execute( ref Entry entry, CommandList commandList )
+		{
+			Graphics.UavBarrier( (Texture)entry.Object1 );
+		}
+
+		AddEntry( &Execute, new Entry { Object1 = texture } );
+	}
+
+	/// <summary>
+	/// Issues a UAV barrier for the given GPU buffer, ensuring writes from prior shader invocations
+	/// are visible to subsequent ones.
+	/// </summary>
+	/// <param name="buffer">The buffer to barrier.</param>
+	public void UavBarrier( GpuBuffer buffer )
+	{
+		static void Execute( ref Entry entry, CommandList commandList )
+		{
+			Graphics.UavBarrier( (GpuBuffer)entry.Object1 );
+		}
+
+		AddEntry( &Execute, new Entry { Object1 = buffer } );
 	}
 
 	/// <summary>

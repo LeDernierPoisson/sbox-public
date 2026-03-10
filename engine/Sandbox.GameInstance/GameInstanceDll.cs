@@ -89,6 +89,15 @@ internal partial class GameInstanceDll : Engine.IGameInstanceDll
 
 		Event.Run( "app.exit" );
 		Game.Cookies?.Save();
+
+		// Release InputContext references so the UISystem/PanelRenderer
+		// chain (and any RenderAttributes it holds) can be collected.
+		if ( InputContext is not null )
+		{
+			InputContext.KeyboardFocusPanel = null;
+			InputContext.MouseFocusPanel = null;
+			InputContext = null;
+		}
 	}
 
 	static int Counter;
@@ -160,7 +169,7 @@ internal partial class GameInstanceDll : Engine.IGameInstanceDll
 		UserPermission.Load();
 
 		Input.ReadConfig( null );
-		StyleSheet.InitStyleSheets();
+		StyleSheet.ResetStyleSheets();
 		Networking.Reset();
 		Connection.Reset();
 		GlobalContext.Current.Reset();

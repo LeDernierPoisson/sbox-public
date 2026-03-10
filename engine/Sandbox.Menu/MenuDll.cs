@@ -138,7 +138,7 @@ internal sealed class MenuDll : IMenuDll
 		// LoopEvent.Init
 		//
 		{
-			StyleSheet.InitStyleSheets();
+			StyleSheet.ResetStyleSheets();
 			GlobalContext.Current.Reset();
 		}
 
@@ -241,6 +241,15 @@ internal sealed class MenuDll : IMenuDll
 
 			// Expire async context to prevent lingering tasks
 			AsyncContext.Expire( null );
+
+			// Release panel references held by input context — these keep
+			// the entire menu panel tree (and its TextBlock textures) alive.
+			if ( InputContext is not null )
+			{
+				InputContext.KeyboardFocusPanel = null;
+				InputContext.MouseFocusPanel = null;
+				InputContext = null;
+			}
 
 			// Clear global context
 			GlobalContext.Current.Reset();
