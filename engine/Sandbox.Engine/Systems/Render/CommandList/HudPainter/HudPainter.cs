@@ -149,8 +149,6 @@ public readonly ref struct HudPainter
 		return DrawText( scope, rect, flags );
 	}
 
-	private static Material TextShader = Material.FromShader( "shaders/ui_text.shader" );
-
 	/// <summary>
 	/// Draws text within a rectangle using a prepared <see cref="TextRendering.Scope"/>.
 	/// </summary>
@@ -162,11 +160,10 @@ public readonly ref struct HudPainter
 		var texture = TextRendering.GetOrCreateTexture( scope, flag: flags );
 		if ( texture is null ) return rect;
 
-		list.Attributes.Set( "Texture", texture );
 		rect = rect.Align( texture.Size, flags );
 		rect = rect.SnapToGrid();
 
-		list.DrawQuad( rect.SnapToGrid(), TextShader, Color.White );
+		list.DrawText( scope, rect, flags );
 		return rect;
 	}
 

@@ -80,13 +80,8 @@ internal sealed class MenuDll : IMenuDll
 		//
 		// Localization from menu 
 		//
-		{
-			var localizationFolder = new AggregateFileSystem();
-			localizationFolder.CreateAndMount( EngineFileSystem.Addons, "/menu/localization/" );
-
-			Game.Language = new LanguageContainer( localizationFolder );
-		}
-
+		Game.Language = new LanguageContainer();
+		Game.Language.FileSystem.CreateAndMount( EngineFileSystem.Addons, "/menu/localization/" );
 
 
 		//

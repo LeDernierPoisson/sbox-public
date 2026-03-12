@@ -406,6 +406,15 @@ internal class UISystem
 		}
 	}
 
+	internal void OnLanguageChanged()
+	{
+		for ( int i = 0; i < RootPanels.Count(); i++ )
+		{
+			if ( !RootPanels[i].IsValid ) continue;
+			RootPanels[i].LanguageChanged();
+		}
+	}
+
 	internal void Clear()
 	{
 		// Clear any dangling tooltip panel references before destroying the tree.

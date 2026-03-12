@@ -1231,4 +1231,28 @@ public sealed unsafe partial class CommandList
 
 		AddEntry( &Execute, new Entry { Object1 = texture, Data1 = new Vector4( (int)method, 0, 0, 0 ) } );
 	}
+
+	/// <summary>
+	/// Draws text within a rectangle using a prepared <see cref="TextRendering.Scope"/>.
+	/// </summary>
+	/// <param name="scope">The text rendering scope.</param>
+	/// <param name="rect">The rectangle to draw the text in.</param>
+	/// <param name="flags">Text alignment flags (optional).</param>
+	public void DrawText( TextRendering.Scope scope, Rect rect, TextFlag flags = TextFlag.LeftTop )
+	{
+		static void Execute( ref Entry entry, CommandList commandList )
+		{
+			var rect = new Rect( entry.Data1.x, entry.Data1.y, entry.Data1.z, entry.Data1.w );
+			var scope = (TextRendering.Scope)entry.Object1;
+			var flags = (TextFlag)entry.Object2;
+			Graphics.DrawText( rect, scope, flags );
+		}
+
+		AddEntry( &Execute, new Entry
+		{
+			Object1 = scope,
+			Object2 = flags,
+			Data1 = new Vector4( rect.Left, rect.Top, rect.Width, rect.Height )
+		} );
+	}
 }

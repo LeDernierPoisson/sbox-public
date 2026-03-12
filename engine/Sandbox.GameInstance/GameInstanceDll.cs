@@ -155,6 +155,7 @@ internal partial class GameInstanceDll : Engine.IGameInstanceDll
 		CodeArchiveTable.Reset();
 		NetworkedSmallFiles.Reset();
 		NetworkedConfigFiles.Reset();
+		NetworkedLangFiles.Reset();
 		NetworkedLargeFiles.Reset();
 		ReplicatedConvars.Reset();
 		ServerPackages.Clear();
