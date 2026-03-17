@@ -352,6 +352,7 @@ partial class ObjectSelection
 			var scale = meshComponent.WorldScale;
 			meshComponent.WorldScale = 1.0f;
 			meshComponent.Mesh.Scale( scale );
+			meshComponent.Mesh.ComputeFaceTextureParametersFromCoordinates();
 			meshComponent.RebuildMesh();
 		}
 
