@@ -224,7 +224,7 @@ internal partial class ManagerWriter
 								Write( $"if ( self == IntPtr.Zero ) throw new System.NullReferenceException( \"{c.ManagedName} was null when calling {f.Name}\" );" );
 							}
 
-							string call = $"{InternalNative}.Set__{f.MangledName}( {args}{f.Return.ToInterop( false, "value" )} );";
+							string call = $"{InternalNative}.Set__{f.MangledName}( {args}{f.Return.ToInterop( false )} );";
 							call = f.Return.WrapFunctionCall( call, false ).Replace( "returnvalue", "value" );
 							Write( call );
 
@@ -270,8 +270,11 @@ internal partial class ManagerWriter
 						managedArgs.Add( f.Return.GetManagedDelegateType( true ) );
 						string managedArgss = $"{string.Join( ", ", managedArgs )}";
 
+						managedArgs[managedArgs.Count - 1] = f.Return.GetManagedDelegateType( false );
+						string setterArgss = $"{string.Join( ", ", managedArgs )}";
+
 						WriteLine( $"internal static delegate* unmanaged[SuppressGCTransition]<{managedArgss}> Get__{f.MangledName};\n" );
-						WriteLine( $"internal static delegate* unmanaged[SuppressGCTransition]<{managedArgss}, void> Set__{f.MangledName};\n" );
+						WriteLine( $"internal static delegate* unmanaged[SuppressGCTransition]<{setterArgss}, void> Set__{f.MangledName};\n" );
 					}
 				}
 				EndBlock();
