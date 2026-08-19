@@ -50,6 +50,67 @@ float Terrain_SampleHeightLattice( Texture2D tHeightMap, float2 localXY, float l
 }
 
 //
+// How much of a material's relief displacement the vertex lattice can actually carry.
+//
+// nho relief is per-pixel detail: one tile spans 32/uvscale world units, so on a coarse lattice several
+// tiles fall between neighbouring vertices. The tap then aliases into per-vertex noise of
+// +-displacementscale; adjacent vertices disagree by up to twice that, which creases the surface hard
+// enough that facets turn away from the camera, get backface-culled, and leave see-through slivers.
+// Fade the amplitude out over the last octave before the lattice reaches that limit, so relief displaces
+// vertices only where the mesh has the density to represent it.
+//
+float Terrain_DisplacementDetailFade( float uvscale, float vertexStep )
+{
+    float tilePeriod = 32.0f / max( uvscale, 1e-6f );
+    return saturate( tilePeriod / max( vertexStep * 4.0f, 1e-6f ) - 1.0f );
+}
+
+//
+// Relief displacement for one control-map texel's material pair, in world units.
+//
+float Terrain_MaterialDisplacement( CompactTerrainMaterial controlMat, float2 localXY,
+    SamplerState materialSampler, float vertexStep )
+{
+    TerrainMaterial baseMat = g_TerrainMaterials[controlMat.BaseTextureId];
+    float blend = controlMat.GetNormalizedBlend();
+    TerrainMaterial overlayMat = g_TerrainMaterials[controlMat.OverlayTextureId];
+
+    float baseFade = Terrain_DisplacementDetailFade( baseMat.uvscale, vertexStep );
+    float overlayFade = Terrain_DisplacementDetailFade( overlayMat.uvscale, vertexStep );
+
+    // Nothing representable at this density: skip the taps entirely.
+    if ( baseFade <= 0.0f && overlayFade <= 0.0f )
+        return 0.0f;
+
+    float2 baseLayerUV = ( localXY / 32.0f ) * baseMat.uvscale;
+    if ( baseMat.HasFlag( TerrainFlags::NoTile ) )
+        baseLayerUV = Terrain_SampleSeamlessUV( baseLayerUV );
+
+    float4 baseNho = Bindless::GetTexture2D( baseMat.nho_texid ).SampleLevel( materialSampler, baseLayerUV, 0 );
+    float baseDisplacement = ( baseNho.b - 0.5f ) * 2.0f * baseMat.displacementscale * baseFade;
+
+    if ( blend <= 0.0f && !Terrain::Get().HeightBlending )
+        return baseDisplacement;
+
+    float2 overlayLayerUV = ( localXY / 32.0f ) * overlayMat.uvscale;
+    if ( overlayMat.HasFlag( TerrainFlags::NoTile ) )
+        overlayLayerUV = Terrain_SampleSeamlessUV( overlayLayerUV );
+
+    float4 overlayNho = Bindless::GetTexture2D( overlayMat.nho_texid ).SampleLevel( materialSampler, overlayLayerUV, 0 );
+    float overlayDisplacement = ( overlayNho.b - 0.5f ) * 2.0f * overlayMat.displacementscale * overlayFade;
+
+    // Height-aware blend, matching the surface color/normal blend
+    if ( Terrain::Get().HeightBlending && baseMat.nho_texid > 0 && overlayMat.nho_texid > 0 )
+    {
+        float baseHeight = baseNho.b * baseMat.heightstrength;
+        float overlayHeight = overlayNho.b * overlayMat.heightstrength;
+        blend = Terrain_HeightBlendWeight( blend, baseHeight, overlayHeight, Terrain::Get().HeightBlendSharpness );
+    }
+
+    return lerp( baseDisplacement, overlayDisplacement, blend );
+}
+
+//
 // Place an instanced meshlet vertex.
 //   blockLocal : block-local grid coordinate in [0, BlockSize]
 // Returns terrain-local position (xy, normalized height in z). Caller scales z by HeightScale
@@ -60,7 +121,8 @@ float3 Terrain_ClipmapMeshlet(
     TerrainMeshlet meshlet,
     Texture2D tHeightMap,
     float unitsPerTexel,
-    out float outLod )
+    out float outLod,
+    out float outVertexStep )
 {
     int level = meshlet.Level;
 
@@ -94,5 +156,6 @@ float3 Terrain_ClipmapMeshlet(
         z = lerp( zFine, Terrain_SampleHeightLattice( tHeightMap, localXY, vertexStep * 2.0f, texSizeUnits ), alpha );
 
     outLod = (float)level;
+    outVertexStep = vertexStep;
     return float3( localXY, z );
 }

@@ -76,7 +76,8 @@ VS
 
         Texture2D tHeightMap = Bindless::GetTexture2D( Terrain::Get().HeightMapTexture );
         float flLodLevel;
-        o.LocalPosition = Terrain_ClipmapMeshlet( i.PositionAndLod.xy, meshlet, tHeightMap, Terrain::Get().UnitsPerTexel, flLodLevel );
+        float flVertexStep;
+        o.LocalPosition = Terrain_ClipmapMeshlet( i.PositionAndLod.xy, meshlet, tHeightMap, Terrain::Get().UnitsPerTexel, flLodLevel, flVertexStep );
 
         o.LocalPosition.z *= Terrain::Get().HeightScale;
 
@@ -95,42 +96,27 @@ VS
             {
                 float2 texSize = TextureDimensions2D( tHeightMap, 0 );
                 float2 uv = o.LocalPosition.xy / ( texSize * Terrain::Get().UnitsPerTexel );
-                CompactTerrainMaterial controlMat = CompactTerrainMaterial::DecodeFromFloat( Terrain::GetControlMap().SampleLevel( g_sPointClamp, uv, 0 ).r );
 
-                // Sample base material displacement
-                TerrainMaterial baseMat = g_TerrainMaterials[controlMat.BaseTextureId];
+                // One material pair per control texel, and neighbouring texels can carry opposite
+                // displacementscale signs. A point tap makes the vertex displacement piecewise constant
+                // over texels twice the lattice spacing, so adjacent vertices jump by 2*|displacementscale|
+                // and crease the surface into see-through slivers. Blend the four texels of the control
+                // quad with the same weights the pixel shader uses to keep the field continuous.
+                float4 quadWeights;
+                uint4 controlBits = Terrain::GatherControlQuad( uv, quadWeights );
+
                 SamplerState materialSampler = Bindless::GetSampler( Terrain::Get().samplerindex );
-                float2 baseLayerUV = ( o.LocalPosition.xy / 32.0f ) * baseMat.uvscale;
+                float totalDisplacement = 0.0f;
 
-                if( baseMat.HasFlag( TerrainFlags::NoTile ) )
-                    baseLayerUV = Terrain_SampleSeamlessUV( baseLayerUV );
-
-                float4 baseNho = Bindless::GetTexture2D( baseMat.nho_texid ).SampleLevel( materialSampler, baseLayerUV, 0 );
-                float baseDisplacement = ( baseNho.b - 0.5f ) * 2.0f * baseMat.displacementscale;
-
-                float blend = controlMat.GetNormalizedBlend();
-                float totalDisplacement = baseDisplacement;
-
-                if ( blend > 0.0f || Terrain::Get().HeightBlending )
+                [unroll]
+                for ( int corner = 0; corner < 4; corner++ )
                 {
-                    TerrainMaterial overlayMat = g_TerrainMaterials[controlMat.OverlayTextureId];
-                    float2 overlayLayerUV = ( o.LocalPosition.xy / 32.0f ) * overlayMat.uvscale;
+                    if ( quadWeights[corner] <= 0.0f )
+                        continue;
 
-                    if( overlayMat.HasFlag( TerrainFlags::NoTile ) )
-                        overlayLayerUV = Terrain_SampleSeamlessUV( overlayLayerUV );
-
-                    float4 overlayNho = Bindless::GetTexture2D( overlayMat.nho_texid ).SampleLevel( materialSampler, overlayLayerUV, 0 );
-                    float overlayDisplacement = ( overlayNho.b - 0.5f ) * 2.0f * overlayMat.displacementscale;
-
-                    // Height-aware blend, matching the surface color/normal blend
-                    if ( Terrain::Get().HeightBlending && baseMat.nho_texid > 0 && overlayMat.nho_texid > 0 )
-                    {
-                        float baseHeight = baseNho.b * baseMat.heightstrength;
-                        float overlayHeight = overlayNho.b * overlayMat.heightstrength;
-                        blend = Terrain_HeightBlendWeight( blend, baseHeight, overlayHeight, Terrain::Get().HeightBlendSharpness );
-                    }
-
-                    totalDisplacement = lerp( baseDisplacement, overlayDisplacement, blend );
+                    totalDisplacement += quadWeights[corner] * Terrain_MaterialDisplacement(
+                        CompactTerrainMaterial::Decode( controlBits[corner] ),
+                        o.LocalPosition.xy, materialSampler, flVertexStep );
                 }
 
                 float3 geoNormal = Terrain::SampleNormal( uv );
