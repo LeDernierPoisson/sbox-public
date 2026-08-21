@@ -59,16 +59,22 @@ public class CurveEditorPopup : Widget
 			Presets.MaximumSize = new( 1000, 148 );
 			Presets.OnCurveClicked = c =>
 			{
-				var existingCurve = serializedProperty.GetValue<Curve>();
-				if ( !Editor.CanEditTimeRange )
+				using ( Editor.History.Push( "Apply Curve Preset" ) )
 				{
-					c.UpdateTimeRange( existingCurve.TimeRange, false );
+					var existingCurve = serializedProperty.GetValue<Curve>();
+					if ( !Editor.CanEditTimeRange )
+					{
+						c.UpdateTimeRange( existingCurve.TimeRange, false );
+					}
+					if ( !Editor.CanEditValueRange )
+					{
+						c.UpdateValueRange( existingCurve.ValueRange, false );
+					}
+					serializedProperty.SetValue( c );
+
+					// Pull the new curve into the editor before the scope snapshots the result
+					BindSystem.Flush();
 				}
-				if ( !Editor.CanEditValueRange )
-				{
-					c.UpdateValueRange( existingCurve.ValueRange, false );
-				}
-				serializedProperty.SetValue( c );
 			};
 			Presets.GetCurveToSave = () => serializedProperty.GetValue<Curve>();
 			Layout.Add( Presets );
@@ -82,6 +88,12 @@ public class CurveEditorPopup : Widget
 	{
 		Editor.SetIsRange();
 	}
+
+	[Shortcut( "editor.undo", "CTRL+Z", ShortcutType.Window )]
+	private bool Undo() => Editor.History.Undo();
+
+	[Shortcut( "editor.redo", "CTRL+Y", ShortcutType.Window )]
+	private bool Redo() => Editor.History.Redo();
 
 	private void ApplyRangeAttributes( SerializedProperty property )
 	{
